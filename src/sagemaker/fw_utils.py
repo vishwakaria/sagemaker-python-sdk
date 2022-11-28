@@ -1128,7 +1128,7 @@ def validate_smddp_collectives_support(
         )
     if not err_msg:
         return True
-    logger.warning("Could not enable SMDDP Collectives.\n %s", err_msg)
+    logger.warning("Could not enable SMDDP Collectives.\n%s", err_msg)
     return False
 
 
