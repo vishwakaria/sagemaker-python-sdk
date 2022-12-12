@@ -175,6 +175,50 @@ class PyTorch(Framework):
                     To learn more, see `Distributed PyTorch Training
                     <https://sagemaker.readthedocs.io/en/stable/frameworks/pytorch/using_pytorch.html#distributed-pytorch-training>`_.
 
+                .. note::
+
+                    Starting PyTorch 1.12.1, for PyTorch DDP distributed training jobs,
+                    SageMaker implements *SMDDP collectives*, which are
+                    communication collective primatives offered by the `SageMaker data parallelism library
+                    <https://docs.aws.amazon.com/sagemaker/latest/dg/data-parallel.html>`_.
+                    For all PyTorch DDP jobs, SageMaker
+                    automatically selects the most optimal communication backend between the
+                    SMDDP collectives and NCCL. This automated selection of
+                    the collectives ensures that you get the best possible
+                    training performance from faster communication at a lower cost.
+
+                    This means that, by default, the backend parameter of the
+                    ``communication_options`` for ``pytorchddp`` distribution is
+                    set to ``auto`` as follows.
+
+                    .. code:: python
+
+                        {
+                            "pytorchddp": {
+                                "enabled": True,
+                                "communication_options": {
+                                    "backend": "auto",  # backend is set to auto by default
+                                }
+                            }
+                        }
+
+                    In cases where you want to force to use NCCL, you can explicitly set the communication
+                    backend to ``nccl`` as follows:
+
+                    .. code:: python
+
+                        {
+                            "pytorchddp": {
+                                "enabled": True,
+                                "communication_options": {
+                                    "backend": "nccl",  # backend is set to auto by default
+                                }
+                            }
+                        }
+
+                    To learn more about the SMDDP collectives, see also `Distributed PyTorch Training
+                    <https://sagemaker.readthedocs.io/en/stable/frameworks/pytorch/using_pytorch.html#distributed-pytorch-training>`_.
+
                 **To enable Torch Distributed (for Trainium instances only):**
 
                     .. code:: python
@@ -215,8 +259,7 @@ class PyTorch(Framework):
                     <https://sagemaker.readthedocs.io/en/stable/frameworks/tensorflow/using_tf.html#training-with-parameter-servers>`_.
 
                 **To enable distributed training with
-                `SageMaker Training Compiler <https://docs.aws.amazon.com/sagemaker/latest/dg/training-compiler.html>`_
-                for PyTorch:**
+                SageMaker Training Compiler for PyTorch:**
 
                     .. code:: python
 
@@ -236,7 +279,7 @@ class PyTorch(Framework):
                         you must add the ``compiler_config`` parameter and activate SageMaker
                         Training Compiler.
 
-                compiler_config (:class:`~sagemaker.pytorch.TrainingCompilerConfig`):
+            compiler_config (:class:`~sagemaker.pytorch.TrainingCompilerConfig`):
                 Configures SageMaker Training Compiler to accelerate training.
 
             **kwargs: Additional kwargs passed to the :class:`~sagemaker.estimator.Framework`

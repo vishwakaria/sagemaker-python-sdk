@@ -140,6 +140,8 @@ The function of installing packages using ``requirements.txt`` is supported for 
 
 A ``requirements.txt`` file is a text file that contains a list of items that are installed by using ``pip install``. You can also specify the version of an item to install. For information about the format of a ``requirements.txt`` file, see `Requirements Files <https://pip.pypa.io/en/stable/user_guide/#requirements-files>`__ in the pip documentation.
 
+-----
+
 Create an Estimator
 ===================
 
@@ -161,7 +163,7 @@ directories ('train' and 'test').
                            'test': 's3://my-data-bucket/path/to/my/test/data'})
 
 
-
+-----
 
 Call the fit Method
 ===================
@@ -196,6 +198,7 @@ fit Optional Arguments
 -  ``logs``: Defaults to True, whether to show logs produced by training
    job in the Python session. Only meaningful when wait is True.
 
+-----
 
 Distributed PyTorch Training
 ============================
@@ -267,7 +270,7 @@ during the PyTorch DDP initialization.
 For more information about setting up PyTorch DDP in your training script,
 see `Getting Started with Distributed Data Parallel
 <https://pytorch.org/tutorials/intermediate/ddp_tutorial.html>`_ in the
-PyTorch documentation.
+*PyTorch documentation*.
 
 The following example shows how to run a PyTorch DDP training in SageMaker
 using two ``ml.p4d.24xlarge`` instances:
@@ -291,6 +294,64 @@ using two ``ml.p4d.24xlarge`` instances:
     )
 
     pt_estimator.fit("s3://bucket/path/to/training/data")
+
+SMDDP collectives for PyTorch DDP
+---------------------------------
+
+Starting PyTorch 1.12.1, when you run PyTorch DDP training jobs on SageMaker,
+you can benefit from the performance gain by using *SMDDP collectives*
+with *no code changes* in your PyTorch training script.
+*SMDDP collectives* is the
+collective communication primitives offered by the `SageMaker data parallelism library
+<https://docs.aws.amazon.com/sagemaker/latest/dg/data-parallel.html>`_.
+The SMDDP collectives provide a GPU-based
+AllReduce operation optimized for the AWS network infrastructure and the Amazon EC2
+instance topology. These collectives are designed to address suboptimal performance issues
+in PyTorch DDP distributed training when using NCCL, the general-purpose collective communications library
+from NVIDIA, on the AWS infrastructure.
+
+The SMDDP collectives are on by default for the ``pytorchddp`` distribution option
+if the job configuration is supported. To achieve the most optimal training with
+faster communication, SageMaker compares the performance of the SMDDP and NCCL
+collectives at runtime and automatically selects the backend that performs better.
+
+This means that by default the backend parameter of the ``communication_options`` for
+``pytorchddp`` distribution is set to ``auto``. The goal of the automated backend
+selection is to abstract away the overhead of deciding the right communication backend
+for your training job, while ensuring that you get the best possible training performance
+at a lower cost.
+
+The following code shows an example of setting up a PyTorch estimator
+to run a PyTorch DDP training job on two ``ml.p4d.24xlarge`` instances
+with the communication backed set to ``auto``.
+
+.. code:: python
+
+    from sagemaker.pytorch import PyTorch
+
+    pt_estimator = PyTorch(
+        entry_point="train_ptddp.py",
+        role="SageMakerRole",
+        framework_version="1.12.1",
+        py_version="py38",
+        instance_count=2,
+        instance_type="ml.p4d.24xlarge",
+        distribution={
+            "pytorchddp": {
+                "enabled": True,
+                "communication_options": {    # Optional. This is set to auto by default.
+                    "backend": "auto"
+                }
+            }
+        }
+    )
+
+    pt_estimator.fit("s3://bucket/path/to/training/data")
+
+If you want to turn this automatic backend selection off and force to use NCCL,
+you can explicitly set ``"backend": "nccl"`` as the communication backend.
+
+-----
 
 .. _distributed-pytorch-training-on-trainium:
 
@@ -406,6 +467,8 @@ on one ``ml.trn1.2xlarge`` instance and two ``ml.trn1.32xlarge`` instances:
     )
 
     pt_estimator.fit("s3://bucket/path/to/training/data")
+
+-----
 
 *********************
 Deploy PyTorch Models
